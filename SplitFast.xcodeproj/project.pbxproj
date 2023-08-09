@@ -11,6 +11,8 @@
 		0BDEE0D62A8392230002909B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BDEE0D52A8392230002909B /* ContentView.swift */; };
 		0BDEE0D82A8392250002909B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0BDEE0D72A8392250002909B /* Assets.xcassets */; };
 		0BDEE0DC2A8392250002909B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0BDEE0DB2A8392250002909B /* Preview Assets.xcassets */; };
+		0BDEE0E32A8392950002909B /* Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BDEE0E22A8392950002909B /* Video.swift */; };
+		0BDEE0E52A83988F0002909B /* Picker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BDEE0E42A83988F0002909B /* Picker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +22,8 @@
 		0BDEE0D72A8392250002909B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0BDEE0D92A8392250002909B /* SplitFast.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SplitFast.entitlements; sourceTree = "<group>"; };
 		0BDEE0DB2A8392250002909B /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		0BDEE0E22A8392950002909B /* Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Video.swift; sourceTree = "<group>"; };
+		0BDEE0E42A83988F0002909B /* Picker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Picker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,11 +56,13 @@
 		0BDEE0D22A8392230002909B /* SplitFast */ = {
 			isa = PBXGroup;
 			children = (
+				0BDEE0E42A83988F0002909B /* Picker.swift */,
 				0BDEE0D32A8392230002909B /* SplitFastApp.swift */,
 				0BDEE0D52A8392230002909B /* ContentView.swift */,
 				0BDEE0D72A8392250002909B /* Assets.xcassets */,
 				0BDEE0D92A8392250002909B /* SplitFast.entitlements */,
 				0BDEE0DA2A8392250002909B /* Preview Content */,
+				0BDEE0E22A8392950002909B /* Video.swift */,
 			);
 			path = SplitFast;
 			sourceTree = "<group>";
@@ -140,6 +146,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				0BDEE0D62A8392230002909B /* ContentView.swift in Sources */,
+				0BDEE0E52A83988F0002909B /* Picker.swift in Sources */,
+				0BDEE0E32A8392950002909B /* Video.swift in Sources */,
 				0BDEE0D42A8392230002909B /* SplitFastApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -262,6 +270,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SplitFast/SplitFast.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"SplitFast/Preview Content\"";
@@ -269,6 +278,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "To save parts of video back";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To save parts of video back";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -300,6 +311,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SplitFast/SplitFast.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"SplitFast/Preview Content\"";
@@ -307,6 +319,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "To save parts of video back";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To save parts of video back";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
