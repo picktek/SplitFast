@@ -24,7 +24,12 @@ struct ContentView: View {
             ScrollView(showsIndicators: false) {
                 VStack {
                     if(splitTotal > splitProggress) {
-                        ProgressView("Spliting…", value: splitProggress, total: splitTotal).padding()
+                        Text("Will continue in background only for 25 second after it will be canceled").font(.system(size: 8)).padding().opacity(0.6).frame(maxWidth: .infinity, alignment: .leading)
+                        HStack {
+                            Text("Spliting…").frame(maxWidth: .infinity, alignment: .leading)
+                            Text("\(splitProggress, specifier: "%.2f") : \(splitTotal, specifier: "%.2f")")
+                        }.padding()
+                        ProgressView(value: splitProggress, total: splitTotal).padding()
                         Button("Stop", role: .destructive) {
                             self.shouldStop = true
                             UIApplication.shared.endBackgroundTask(self.backgroundTaskID!)
