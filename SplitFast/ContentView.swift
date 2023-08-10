@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var showImagePicker : Bool = false
-    @State private var partDuration : Float64 =  max(30, Float64(UserDefaults.standard.double(forKey: "partDuration")) )
+    @State private var partDuration : Float64 =  Float64(UserDefaults.standard.double(forKey: "partDuration") ) 
     @State private var splitProggress = 0.0
     @State private var splitTotal = 0.0
     
@@ -47,7 +47,7 @@ struct ContentView: View {
                 .padding()
                 .frame(minHeight: geometry.size.height)
                 .sheet(isPresented: self.$showImagePicker) {
-                    VideoPicker(isShown: self.$showImagePicker, partDuration: self.$partDuration, parts: $splitProggress, totalParts:  $splitTotal)
+                    VideoPicker(isShown: self.$showImagePicker, partDuration: self.$partDuration, parts: self.$splitProggress, totalParts:  self.$splitTotal)
                 }
                 Text(
                     (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-")

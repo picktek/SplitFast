@@ -98,7 +98,7 @@ func export(_ asset: AVAsset, startTime: CMTime, endTime: CMTime, proggress: @es
     exporter?.outputURL = outputMovieURL
     exporter?.outputFileType = .mov
     exporter?.timeRange = timeRange
-
+    
     
     DispatchQueue.main.async {
         Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true, block: { t in
@@ -108,6 +108,8 @@ func export(_ asset: AVAsset, startTime: CMTime, endTime: CMTime, proggress: @es
             if(Double(exporter?.progress ?? 0) > 0.99) {
                 t.invalidate()
             }
+            
+            
         })
     }
             
