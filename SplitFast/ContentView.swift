@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var showImagePicker : Bool = false
-    @State private var partDuration : Float64 =  Float64(UserDefaults.standard.double(forKey: "partDuration")) ?? 30.0
+    @State private var partDuration : Float64 =  max(30, Float64(UserDefaults.standard.double(forKey: "partDuration")) )
     @State private var splitProggress = 0.0
     @State private var splitTotal = 0.0
     
@@ -23,14 +23,22 @@ struct ContentView: View {
                     } else {
                         Text("Video Part duration: \(partDuration, specifier: "%.2f")")
                             .foregroundColor(.blue)
-                        Slider(    value: $partDuration,
-                                   in: 10...90,
-                                   step: 0.5,
-                                   onEditingChanged:{_ in
-                            UserDefaults.standard.set(Double(partDuration), forKey: "partDuration")
-                            UserDefaults.standard.synchronize()
-                            
-                        }).padding()
+                        HStack {
+                            Button("-") {
+                                partDuration -= 0.5
+                            }.buttonStyle(.bordered)
+                            Slider(    value: $partDuration,
+                                       in: 10...90,
+                                       step: 0.5,
+                                       onEditingChanged:{_ in
+                                UserDefaults.standard.set(Double(partDuration), forKey: "partDuration")
+                                UserDefaults.standard.synchronize()
+                                
+                            })
+                            Button("+") {
+                                partDuration += 0.5
+                            }.buttonStyle(.bordered)
+                        }.padding()
                         Button("Choose Video") {
                             self.showImagePicker = true
                         }.buttonStyle(.bordered)
