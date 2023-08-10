@@ -14,25 +14,35 @@ struct ContentView: View {
     @State private var splitTotal = 0.0
     
     var body: some View {
-        VStack {
+        GeometryReader { geometry in
             
-            if(splitTotal > splitProggress) {
-                ProgressView("Spliting…", value: splitProggress, total: splitTotal).padding()
-            } else {
-                Text("Video Part duration: \(partDuration, specifier: "%.2f")")
-                    .foregroundColor(.blue)
-                Slider(    value: $partDuration,
-                           in: 10...90,
-                           step: 0.5).padding()
-                Button("Choose Video") {
-                    self.showImagePicker = true
-                }.buttonStyle(.bordered)
+            ScrollView(showsIndicators: false) {
+                VStack {
+                    if(splitTotal > splitProggress) {
+                        ProgressView("Spliting…", value: splitProggress, total: splitTotal).padding()
+                    } else {
+                        Text("Video Part duration: \(partDuration, specifier: "%.2f")")
+                            .foregroundColor(.blue)
+                        Slider(    value: $partDuration,
+                                   in: 10...90,
+                                   step: 0.5).padding()
+                        Button("Choose Video") {
+                            self.showImagePicker = true
+                        }.buttonStyle(.bordered)
+                    }
+                }
+                .padding()
+                .frame(minHeight: geometry.size.height)
+                .sheet(isPresented: self.$showImagePicker) {
+                    VideoPicker(isShown: self.$showImagePicker, partDuration: self.$partDuration, parts: $splitProggress, totalParts:  $splitTotal)
+                }
+                Text(
+                    (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-")
+                    + " (" +
+                    (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "-")
+                    + ")"
+                ).padding(-20)
             }
-            
-        }
-        .padding()
-        .sheet(isPresented: self.$showImagePicker) {
-            VideoPicker(isShown: self.$showImagePicker, partDuration: self.$partDuration, parts: $splitProggress, totalParts:  $splitTotal)
         }
     }
 }

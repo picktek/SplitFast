@@ -101,7 +101,7 @@ func export(_ asset: AVAsset, startTime: CMTime, endTime: CMTime, proggress: @es
 
     
     DispatchQueue.main.async {
-        let t = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true, block: { t in
+        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true, block: { t in
             print(outputMovieURL, Double(exporter?.progress ?? 0))
             proggress(Double(exporter?.progress ?? 0))
             
