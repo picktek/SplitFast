@@ -9,6 +9,7 @@ import Foundation
 import AVKit
 import Dispatch
 import Photos
+import AVFoundation
 
 func generateThumbnail(path: URL) -> UIImage? {
     do {
@@ -106,6 +107,7 @@ func handleVideo(url: URL, partDuration: Float64 = 30.0, completion: @escaping  
     shouldStop = completion(total,total)
 }
 
+
 func export(_ asset: AVAsset, startTime: CMTime, endTime: CMTime, proggress: @escaping (Double) -> Bool) async -> URL? {
     
     //Create trim range
@@ -126,7 +128,7 @@ func export(_ asset: AVAsset, startTime: CMTime, endTime: CMTime, proggress: @es
     }
     
     //create exporter
-    let exporter = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality)
+    let exporter = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetPassthrough)
     
     //configure exporter
     exporter?.outputURL = outputMovieURL
