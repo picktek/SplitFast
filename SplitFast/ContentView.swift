@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var showImagePicker : Bool = false
-    @AppStorage("partDuration") private var partDuration : Float64 = 30.0
+    @State private var partDuration : Float64 =  Float64(UserDefaults.standard.double(forKey: "partDuration")) ?? 30.0
     @State private var splitProggress = 0.0
     @State private var splitTotal = 0.0
     
@@ -25,7 +25,12 @@ struct ContentView: View {
                             .foregroundColor(.blue)
                         Slider(    value: $partDuration,
                                    in: 10...90,
-                                   step: 0.5).padding()
+                                   step: 0.5,
+                                   onEditingChanged:{_ in
+                            UserDefaults.standard.set(Double(partDuration), forKey: "partDuration")
+                            UserDefaults.standard.synchronize()
+                            
+                        }).padding()
                         Button("Choose Video") {
                             self.showImagePicker = true
                         }.buttonStyle(.bordered)
