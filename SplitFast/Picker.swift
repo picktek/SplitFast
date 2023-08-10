@@ -7,16 +7,12 @@ struct VideoPicker: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentationMode
     
     @Binding var isShown: Bool
-    @Binding var partDuration: Float64
-    @Binding var parts: Double
-    @Binding var totalParts: Double
+    @Binding var inputFile: String?
     
-    init(isShown: Binding<Bool>, partDuration: Binding<Float64>, parts: Binding<Double>, totalParts: Binding<Double>) {
+    
+    init(isShown: Binding<Bool>, inputFile: Binding<String?>) {
         _isShown = isShown
-        _partDuration = partDuration
-        
-        _parts = parts
-        _totalParts = totalParts
+        _inputFile = inputFile
     }
     
     func close() {
@@ -46,6 +42,7 @@ struct VideoPicker: UIViewControllerRepresentable {
     
     class Coordinator: PHPickerViewControllerDelegate {
         let parent: VideoPicker
+        var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
         
         init(_ parent: VideoPicker) {
             self.parent = parent
@@ -72,7 +69,7 @@ struct VideoPicker: UIViewControllerRepresentable {
                 }
                 
                 let documentsDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
-                guard let targetURL = documentsDirectory?.appendingPathComponent(url.lastPathComponent) else {
+                guard let targetURL = documentsDirectory?.appendingPathComponent("split_part_main_" + url.lastPathComponent) else {
                     return
                 }
                 
@@ -83,42 +80,14 @@ struct VideoPicker: UIViewControllerRepresentable {
                     
                     try FileManager.default.copyItem(at: url, to: targetURL)
                     
-                    DispatchQueue.main.async {
-                        self.parent.presentationMode.wrappedValue.dismiss()
-                        
-                        print(url, targetURL)
-                    }
-                    let activity = ProcessInfo.processInfo.beginActivity(options:.background, reason: "To Split video")
-                    
-                    _ = Task {
-                        
-                        await handleVideo(url: targetURL, partDuration: self.parent.partDuration, completion: {
-                            self.parent.parts = $0
-                            self.parent.totalParts = $1
-                        })
-                        try! FileManager.default.removeItem(at: targetURL)
-                        
-                        if (UIApplication.shared.applicationState != .active) {
-                            let content = UNMutableNotificationContent()
-                            content.title = "Spliting Video Completed"
-                            content.body = "Total Parts: \(self.parent.totalParts)"
-                            
-                            let uuidString = UUID().uuidString
-                            let request = UNNotificationRequest(identifier: uuidString,
-                                                                content: content, trigger: nil)
-                            
-                            
-                            // Schedule the request with the system.
-                            let notificationCenter = UNUserNotificationCenter.current()
-                            try await notificationCenter.add(request)
-                        }
-                        ProcessInfo.processInfo.endActivity(activity)
-                    }
-                    
-                    
                 } catch {
                     print(error.localizedDescription)
                 }
+                
+                self.parent.presentationMode.wrappedValue.dismiss()
+                self.parent.inputFile = targetURL.absoluteString
+                
+
                 
                 
             }
