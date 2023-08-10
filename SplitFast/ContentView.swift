@@ -116,9 +116,9 @@ struct ContentView: View {
                             Task {
                                 removeCacheDir()
                             }
-                        }
+                        }.padding()
                     } else {
-                        Text("Video Part duration: \(partDuration, specifier: "%.2f")")
+                        Text("Video Part duration: \(partDuration, specifier: "%.2f") Seconds")
                             .foregroundColor(.blue)
                         HStack {
                             Button("-") {
@@ -151,7 +151,9 @@ struct ContentView: View {
                     + " (" +
                     (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "-")
                     + ")"
-                ).padding(-20)
+                ).frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding([.top], -50)
+                    .padding([.trailing], 40)
             }
         }
     }
