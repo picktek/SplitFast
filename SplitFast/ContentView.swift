@@ -10,7 +10,7 @@ import BackgroundTasks
 
 struct ContentView: View {
     @State private var showImagePicker : Bool = false
-    @State private var partDuration : Float64 =  Float64(UserDefaults.standard.double(forKey: "partDuration") )
+    @State private var partDuration : Float64 =  max(1, Float64(UserDefaults.standard.double(forKey: "partDuration") ))
     @State private var splitProggress = 0.0
     @State private var splitTotal = 0.0
     @State private var inputFile:String? = nil
