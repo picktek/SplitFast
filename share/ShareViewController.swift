@@ -36,7 +36,7 @@ class ShareViewController: UIViewController {
                             let item = data as! URL
                             
                             Task {
-                                await handleVideo(url: item, partDuration: 30.0, completion: {_,_ in
+                                await handleVideo(url: item, partDuration: max(1, Float64(UserDefaults.standard.double(forKey: "partDuration") )), completion: {_,_ in
                                     
                                     return false
                                 })
