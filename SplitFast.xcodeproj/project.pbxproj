@@ -56,6 +56,7 @@
 		0BDEE0DB2A8392250002909B /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		0BDEE0E22A8392950002909B /* Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Video.swift; sourceTree = "<group>"; };
 		0BDEE0E42A83988F0002909B /* Picker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Picker.swift; sourceTree = "<group>"; };
+		0BEF920B2A8613FE00EB91CE /* share.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = share.entitlements; sourceTree = "<group>"; };
 		0BF870052A84B85500217DFD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -80,6 +81,7 @@
 		0B23FE632A85F14000A7540B /* share */ = {
 			isa = PBXGroup;
 			children = (
+				0BEF920B2A8613FE00EB91CE /* share.entitlements */,
 				0B23FE642A85F14000A7540B /* ShareViewController.swift */,
 				0B23FE662A85F14000A7540B /* MainInterface.storyboard */,
 				0B23FE692A85F14000A7540B /* Info.plist */,
@@ -270,6 +272,7 @@
 		0B23FE6E2A85F14000A7540B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = share/share.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = N43S8JF6JT;
@@ -297,6 +300,7 @@
 		0B23FE6F2A85F14000A7540B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = share/share.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = N43S8JF6JT;

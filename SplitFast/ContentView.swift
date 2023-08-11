@@ -10,13 +10,30 @@ import BackgroundTasks
 
 struct ContentView: View {
     @State private var showImagePicker : Bool = false
-    @State private var partDuration : Float64 =  max(1, Float64(UserDefaults.standard.double(forKey: "partDuration") ))
+    @State private var partDuration : Double =  0.0
     @State private var splitProggress = 0.0
     @State private var splitTotal = 0.0
     @State private var inputFile:String? = nil
     @State private var backgroundTaskID:UIBackgroundTaskIdentifier? = nil
     @State private var shouldStop:Bool = false
     @State private var processing:Bool = false
+        
+    
+    func getDuration() -> Double {
+        if let userDefaults = UserDefaults(suiteName: "group.splitfast.storage") {
+            return userDefaults.double(forKey: "partDuration") == 0 ? 30.0 : userDefaults.double(forKey: "partDuration")
+            
+        }
+        
+        return 0.0
+    }
+    
+    func storeDuration(duration:Double) {
+        if let userDefaults = UserDefaults(suiteName: "group.splitfast.storage") {
+            userDefaults.set(duration, forKey: "partDuration")
+            userDefaults.synchronize()
+        }
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -123,17 +140,18 @@ struct ContentView: View {
                         HStack {
                             Button("-") {
                                 partDuration -= 0.5
+                                storeDuration(duration: self.partDuration)
                             }.buttonStyle(.bordered)
                             Slider(    value: $partDuration,
-                                       in: 10...90,
+                                       in: 10...180,
                                        step: 0.5,
                                        onEditingChanged:{_ in
-                                UserDefaults.standard.set(Double(partDuration), forKey: "partDuration")
-                                UserDefaults.standard.synchronize()
-                                
+                                storeDuration(duration: self.partDuration)
+                                                                
                             })
                             Button("+") {
                                 partDuration += 0.5
+                                storeDuration(duration: self.partDuration)
                             }.buttonStyle(.bordered)
                         }.padding()
                         Button("Choose Video") {
@@ -155,7 +173,9 @@ struct ContentView: View {
                     .padding([.top], -50)
                     .padding([.trailing], 40)
             }
-        }
+        }.onAppear(perform: {
+            self.partDuration = getDuration()
+        })
     }
 }
 

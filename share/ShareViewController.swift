@@ -25,6 +25,15 @@ class ShareViewController: UIViewController {
         return []
     }
     
+    func getDuration() -> Double {
+        if let userDefaults = UserDefaults(suiteName: "group.splitfast.storage") {
+            return userDefaults.double(forKey: "partDuration") == 0 ? 30.0 : userDefaults.double(forKey: "partDuration")
+            
+        }
+        
+        return 30.0
+    }
+    
     
     override func viewDidLoad() {
         if let content = extensionContext!.inputItems[0] as? NSExtensionItem {
@@ -36,7 +45,7 @@ class ShareViewController: UIViewController {
                             let item = data as! URL
                             
                             Task {
-                                await handleVideo(url: item, partDuration: max(1, Float64(UserDefaults.standard.double(forKey: "partDuration") )), completion: {_,_ in
+                                await handleVideo(url: item, partDuration: self!.getDuration(), completion: {_,_ in
                                     
                                     return false
                                 })
