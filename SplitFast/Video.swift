@@ -61,7 +61,7 @@ func handleVideo(url: URL, partDuration: Float64 = 30.0, completion: @escaping  
     
     for time in partTimes {
         var prevP = 0.0;
-        let partURL = await export(asset, startTime: time[0], endTime: time[1], proggress: {p in
+        let partURL = await export(asset, startTime: time[0], endTime: time[1], progress: {p in
             progress -= prevP
             progress += min(p, 0.9)
             prevP = min(p, 0.9)
@@ -108,75 +108,151 @@ func handleVideo(url: URL, partDuration: Float64 = 30.0, completion: @escaping  
 }
 
 
-func export(_ asset: AVAsset, startTime: CMTime, endTime: CMTime, proggress: @escaping (Double) -> Bool) async -> URL? {
-    
-    //Create trim range
+
+func export(_ asset: AVAsset, startTime: CMTime, endTime: CMTime, progress: @escaping (Double) -> Bool) async -> URL? {
+    // Create trim range
     let timeRange = CMTimeRangeFromTimeToTime(start: startTime, end: endTime)
     
     print("Start \(CMTimeGetSeconds(timeRange.start))")
-    print("end \(CMTimeGetSeconds(timeRange.end))")
+    print("End \(CMTimeGetSeconds(timeRange.end))")
     
+    // Prepare output URL
     let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
     let path = cacheDir!.appendingPathComponent("split_part_\(UUID().uuidString).mov")
-    
     let outputMovieURL = path
     
+    // Remove existing file if necessary
     do {
         try FileManager.default.removeItem(at: outputMovieURL)
     } catch {
-        print("Could not remove file \(error.localizedDescription)")
+        print("Could not remove file: \(error.localizedDescription)")
     }
     
-    //create exporter
+    // Create exporter
     let exporter = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetPassthrough)
     
-    //configure exporter
+    // Configure exporter
     exporter?.outputURL = outputMovieURL
     exporter?.outputFileType = .mov
     exporter?.timeRange = timeRange
     
+    // Monitor export progress
     DispatchQueue.main.async {
-        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true, block: { t in
-            let stop = proggress(Double(exporter?.progress ?? 0))
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+            let shouldStop = progress(Double(exporter?.progress ?? 0))
             
-            if(stop) {
+            if shouldStop {
                 exporter?.cancelExport()
-                t.invalidate()
+                timer.invalidate()
                 return
             }
             
-            print(  Double(exporter?.progress ?? 0))
-            if(Double(exporter?.progress ?? 0) > 0.99) {
-                t.invalidate()
+            print(Double(exporter?.progress ?? 0))
+            if Double(exporter?.progress ?? 0) > 0.99 {
+                timer.invalidate()
             }
             
-            if(exporter?.status == .failed) {
+            if exporter?.status == .failed {
                 exporter?.cancelExport()
-                t.invalidate()
+                timer.invalidate()
             }
-            
-            
-            
-        })
+        }
     }
     
-    
+    // Start export
     await exporter?.export()
     
-    //export!
+    // Handle export result
     if let error = exporter?.error {
-        print("AVAssetExportSessionERROR: \(error.localizedDescription)")
-        return nil;
+        print("AVAssetExportSession ERROR: \(error.localizedDescription)")
+        return nil
     } else {
         print("Video saved to \(outputMovieURL)")
         
-        return outputMovieURL;
-        
-        
+        // Save to album "splitfast"
+        do {
+            try await saveVideoToAlbum(videoURL: outputMovieURL, albumName: "splitfast")
+            print("Video saved to album 'splitfast'")
+            return outputMovieURL
+        } catch {
+            print("Error saving video to album: \(error.localizedDescription)")
+            return nil
+        }
+    }
+}
+
+// Helper function to save video to a specific album
+func saveVideoToAlbum(videoURL: URL, albumName: String) async throws {
+    // Request authorization if needed
+    let status = PHPhotoLibrary.authorizationStatus()
+    if status == .notDetermined {
+        try await withCheckedThrowingContinuation { continuation in
+            PHPhotoLibrary.requestAuthorization { newStatus in
+                if newStatus == .authorized || newStatus == .limited {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: NSError(domain: "PhotoLibraryAccessDenied", code: 0, userInfo: nil))
+                }
+            }
+        }
+    } else if status != .authorized && status != .limited {
+        throw NSError(domain: "PhotoLibraryAccessDenied", code: 0, userInfo: nil)
     }
     
+    // Find or create album
+    let fetchOptions = PHFetchOptions()
+    fetchOptions.predicate = NSPredicate(format: "title = %@", albumName)
+    let collection = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: fetchOptions)
     
+    var assetCollection: PHAssetCollection?
+    
+    if let firstObject = collection.firstObject {
+        assetCollection = firstObject
+    } else {
+        // Create album
+        var albumPlaceholder: PHObjectPlaceholder?
+        try await withCheckedThrowingContinuation { continuation in
+            PHPhotoLibrary.shared().performChanges({
+                let albumCreationRequest = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumName)
+                albumPlaceholder = albumCreationRequest.placeholderForCreatedAssetCollection
+            }, completionHandler: { success, error in
+                if success, let placeholder = albumPlaceholder {
+                    let fetchResult = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [placeholder.localIdentifier], options: nil)
+                    assetCollection = fetchResult.firstObject
+                    if assetCollection != nil {
+                        continuation.resume()
+                    } else {
+                        continuation.resume(throwing: NSError(domain: "Could not fetch album", code: 0, userInfo: nil))
+                    }
+                } else {
+                    continuation.resume(throwing: error ?? NSError(domain: "Could not create album", code: 0, userInfo: nil))
+                }
+            })
+        }
+    }
+    
+    guard let album = assetCollection else {
+        throw NSError(domain: "Could not find or create album", code: 0, userInfo: nil)
+    }
+    
+    // Save video to album
+    try await withCheckedThrowingContinuation { continuation in
+        PHPhotoLibrary.shared().performChanges({
+            let assetRequest = PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: videoURL)
+            let albumChangeRequest = PHAssetCollectionChangeRequest(for: album)
+            if let assetPlaceholder = assetRequest?.placeholderForCreatedAsset {
+                albumChangeRequest?.addAssets([assetPlaceholder] as NSArray)
+            }
+        }, completionHandler: { success, error in
+            if success {
+                continuation.resume()
+            } else {
+                continuation.resume(throwing: error ?? NSError(domain: "Could not save video to album", code: 0, userInfo: nil))
+            }
+        })
+    }
 }
+
 
 func removeCacheDir() {
     let fileManager = FileManager.default
