@@ -49,7 +49,7 @@ class ShareViewController: UIViewController {
                                     
                                     return false
                                 })
-                                self?.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
+                                await self?.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
                             }
                         }
                     }
