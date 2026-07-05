@@ -7,10 +7,19 @@ struct VideoPicker: UIViewControllerRepresentable {
 
     @Binding var isShown: Bool
     @Binding var selectedSource: SplitSource?
+    @Binding var errorMessage: String?
+    @Binding var isPreparingSource: Bool
 
-    init(isShown: Binding<Bool>, selectedSource: Binding<SplitSource?>) {
+    init(
+        isShown: Binding<Bool>,
+        selectedSource: Binding<SplitSource?>,
+        errorMessage: Binding<String?>,
+        isPreparingSource: Binding<Bool>
+    ) {
         _isShown = isShown
         _selectedSource = selectedSource
+        _errorMessage = errorMessage
+        _isPreparingSource = isPreparingSource
     }
 
     func close() {
@@ -46,9 +55,14 @@ struct VideoPicker: UIViewControllerRepresentable {
 
         func picker(_: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             guard let result = results.first else {
+                parent.isPreparingSource = false
                 parent.close()
                 return
             }
+
+            parent.errorMessage = nil
+            parent.isPreparingSource = true
+            parent.close()
 
             Task {
                 let provider = result.itemProvider
@@ -80,7 +94,8 @@ struct VideoPicker: UIViewControllerRepresentable {
 
                 await MainActor.run {
                     self.parent.selectedSource = source
-                    self.parent.close()
+                    self.parent.errorMessage = source == nil ? "Photos could not provide that video. Free up device storage, open it in Photos, then try again." : nil
+                    self.parent.isPreparingSource = false
                 }
             }
         }

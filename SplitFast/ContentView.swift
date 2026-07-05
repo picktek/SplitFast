@@ -14,6 +14,8 @@ struct ContentView: View {
     @State private var showHistory = false
     @State private var partDuration = 30.0
     @State private var selectedSource: SplitSource?
+    @State private var pickerError: String?
+    @State private var preparingSource = false
     @State private var thumbnail: UIImage?
     @State private var progress: SplitJobProgress?
     @State private var result: SplitJobResult?
@@ -47,7 +49,12 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showImagePicker) {
-                VideoPicker(isShown: $showImagePicker, selectedSource: $selectedSource)
+                VideoPicker(
+                    isShown: $showImagePicker,
+                    selectedSource: $selectedSource,
+                    errorMessage: $pickerError,
+                    isPreparingSource: $preparingSource
+                )
             }
             .sheet(isPresented: $showHistory) {
                 historySheet
@@ -65,6 +72,8 @@ struct ContentView: View {
                 backgroundMessage = nil
 
                 guard let source else { return }
+                pickerError = nil
+                preparingSource = false
                 Task {
                     let image = await source.thumbnail()
                     await MainActor.run {
@@ -122,12 +131,14 @@ struct ContentView: View {
                 }
 
                 Button {
+                    pickerError = nil
+                    preparingSource = false
                     showImagePicker = true
                 } label: {
                     Label(selectedSource == nil ? "Choose Video" : "Change Video", systemImage: "video.badge.plus")
                 }
                 .buttonStyle(.bordered)
-                .disabled(processing)
+                .disabled(processing || preparingSource)
                 .accessibilityIdentifier("chooseVideoButton")
             }
         }
@@ -239,9 +250,18 @@ struct ContentView: View {
 
     @ViewBuilder
     private var statusPanel: some View {
-        if progress != nil || result != nil || backgroundMessage != nil {
+        if preparingSource || progress != nil || result != nil || backgroundMessage != nil || pickerError != nil {
             glassPanel {
                 VStack(alignment: .leading, spacing: 10) {
+                    if preparingSource {
+                        Text("Preparing Source Video")
+                            .font(.headline)
+                        ProgressView()
+                        Text("Waiting for Photos to provide the video.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
                     if let progress {
                         Text(progress.label)
                             .font(.headline)
@@ -263,6 +283,14 @@ struct ContentView: View {
                         Text(backgroundMessage)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                    }
+
+                    if let pickerError {
+                        Text("Could not open Source Video")
+                            .font(.headline)
+                        Text(pickerError)
+                            .font(.subheadline)
+                            .foregroundStyle(.red)
                     }
                 }
             }
@@ -466,6 +494,8 @@ struct ContentView: View {
         }
         selectedSource = nil
         thumbnail = nil
+        pickerError = nil
+        preparingSource = false
         result = nil
         progress = nil
         backgroundMessage = nil

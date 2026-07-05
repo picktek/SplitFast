@@ -302,9 +302,11 @@ func handleVideo(
                 return finish(.canceled, message: "Split Job was canceled.")
             }
 
+            let outputFileName = splitOutputFileName(sourceName: name, index: index, total: ranges.count)
             let outputURL = try await export(
                 asset,
                 timeRange: range,
+                outputFileName: outputFileName,
                 shouldCancel: shouldCancel,
                 progress: { fraction in
                     onProgress(SplitJobProgress(
@@ -342,6 +344,7 @@ func handleVideo(
 func export(
     _ asset: AVAsset,
     timeRange: CMTimeRange,
+    outputFileName: String? = nil,
     shouldCancel: @escaping @MainActor () -> Bool,
     progress: @escaping @MainActor (Double) async -> Void
 ) async throws -> URL {
@@ -349,7 +352,7 @@ func export(
         throw splitFastError("Could not open temporary storage.")
     }
 
-    let outputMovieURL = cacheDir.appendingPathComponent("split_part_\(UUID().uuidString).mov")
+    let outputMovieURL = cacheDir.appendingPathComponent(outputFileName ?? "split_part_\(UUID().uuidString).mov")
     try? FileManager.default.removeItem(at: outputMovieURL)
 
     guard let exporter = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetPassthrough) else {
@@ -595,7 +598,7 @@ func removeSplitTempFiles() {
 
     do {
         let fileURLs = try FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil)
-        for fileURL in fileURLs where fileURL.lastPathComponent.hasPrefix("split_part_") {
+        for fileURL in fileURLs where fileURL.lastPathComponent.hasPrefix("split_part_") || fileURL.lastPathComponent.hasPrefix("SplitFast - ") {
             try? FileManager.default.removeItem(at: fileURL)
         }
     } catch {
@@ -617,6 +620,21 @@ private func splitRanges(durationSeconds: Double, clipLength: Double, timescale:
     }
 
     return ranges
+}
+
+private func splitOutputFileName(sourceName: String, index: Int, total: Int) -> String {
+    let baseName = (sourceName as NSString).deletingPathExtension
+    let separators = CharacterSet(charactersIn: "/\\:?%*|\"<>").union(.newlines)
+    let cleaned = baseName
+        .components(separatedBy: separators)
+        .joined(separator: " ")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    let sourceHint = String((cleaned.isEmpty ? "Source Video" : cleaned).prefix(80))
+    let width = max(2, String(total).count)
+    let clipNumber = String(format: "%0*d", width, index + 1)
+    let clipTotal = String(format: "%0*d", width, total)
+
+    return "SplitFast - \(sourceHint) - \(clipNumber) of \(clipTotal).mov"
 }
 
 private func ensurePhotoLibraryAccess() async throws {

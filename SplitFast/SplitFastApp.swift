@@ -11,7 +11,7 @@ import BackgroundTasks
 final class BackgroundSplitCoordinator {
     static let shared = BackgroundSplitCoordinator()
 
-    private let identifierPrefix = "com.picktek.SplitFast.processing"
+    private let identifier = "com.picktek.SplitFast.processing"
     private var task: BGTask?
     private var registered = false
     var onExpiration: (() -> Void)?
@@ -20,7 +20,7 @@ final class BackgroundSplitCoordinator {
         guard !registered else { return }
 
         if #available(iOS 26.0, *) {
-            registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: "\(identifierPrefix).*", using: nil) { [weak self] task in
+            registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: identifier, using: nil) { [weak self] task in
                 self?.task = task
                 task.expirationHandler = {
                     DispatchQueue.main.async {
@@ -39,7 +39,7 @@ final class BackgroundSplitCoordinator {
     @available(iOS 26.0, *)
     func submit(sourceName: String) -> String? {
         let request = BGContinuedProcessingTaskRequest(
-            identifier: "\(identifierPrefix).\(UUID().uuidString)",
+            identifier: identifier,
             title: "Splitting video",
             subtitle: sourceName
         )
