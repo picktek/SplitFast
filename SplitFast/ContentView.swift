@@ -43,6 +43,7 @@ struct ContentView: View {
                         Image(systemName: "clock.arrow.circlepath")
                     }
                     .accessibilityLabel("Job History")
+                    .accessibilityIdentifier("jobHistoryButton")
                 }
             }
             .sheet(isPresented: $showImagePicker) {
@@ -53,6 +54,9 @@ struct ContentView: View {
             }
             .onAppear {
                 partDuration = SplitSettings.clipLength
+#if DEBUG
+                loadUITestHandoffIfNeeded()
+#endif
             }
             .onChange(of: selectedSource?.id) { _ in
                 let source = selectedSource
@@ -124,6 +128,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(processing)
+                .accessibilityIdentifier("chooseVideoButton")
             }
         }
     }
@@ -145,6 +150,7 @@ struct ContentView: View {
                         }
                         .buttonStyle(.bordered)
                         .tint(partDuration == preset ? .accentColor : .secondary)
+                        .accessibilityIdentifier("clipLengthPreset\(Int(preset))")
                     }
                 }
 
@@ -156,6 +162,8 @@ struct ContentView: View {
                         Image(systemName: "minus")
                     }
                     .buttonStyle(.bordered)
+                    .accessibilityLabel("Decrease Clip Length")
+                    .accessibilityIdentifier("decreaseClipLengthButton")
 
                     Slider(value: $partDuration, in: 10...180, step: 5) {
                         Text("Custom Clip Length")
@@ -176,11 +184,14 @@ struct ContentView: View {
                         Image(systemName: "plus")
                     }
                     .buttonStyle(.bordered)
+                    .accessibilityLabel("Increase Clip Length")
+                    .accessibilityIdentifier("increaseClipLengthButton")
                 }
 
                 Text("\(Int(partDuration)) seconds")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("clipLengthValue")
             }
         }
     }
@@ -197,6 +208,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(processing)
+                .accessibilityIdentifier("clearSelectionButton")
             }
         }
     }
@@ -211,6 +223,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("cancelSplitButton")
         } else {
             Button {
                 startSplit()
@@ -220,6 +233,7 @@ struct ContentView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(selectedSource == nil)
+            .accessibilityIdentifier("startSplitButton")
         }
     }
 
@@ -266,6 +280,7 @@ struct ContentView: View {
                         Text("No Job History")
                             .font(.headline)
                             .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("emptyJobHistory")
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 48)
@@ -305,6 +320,7 @@ struct ContentView: View {
                     Button("Done") {
                         showHistory = false
                     }
+                    .accessibilityIdentifier("doneHistoryButton")
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -313,6 +329,7 @@ struct ContentView: View {
                         history = []
                     }
                     .disabled(history.isEmpty)
+                    .accessibilityIdentifier("clearAllHistoryButton")
                 }
             }
         }
@@ -454,6 +471,19 @@ struct ContentView: View {
         backgroundMessage = nil
         cancelRequested = false
     }
+
+#if DEBUG
+    private func loadUITestHandoffIfNeeded() {
+        guard let rawURL = ProcessInfo.processInfo.environment["UITEST_HANDOFF_URL"],
+              let url = URL(string: rawURL),
+              let source = splitSource(fromHandoffURL: url)
+        else {
+            return
+        }
+
+        selectedSource = source
+    }
+#endif
 
     private func deleteHistory(at offsets: IndexSet) {
         let ids = offsets.map { history[$0].id }

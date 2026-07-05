@@ -72,6 +72,14 @@ final class BackgroundSplitCoordinator {
 @main
 struct SplitFastApp: App {
     init() {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("UITEST_RESET_STATE") {
+            // ponytail: reset only what UI tests persist; add fuller fixtures if media E2E needs them.
+            SplitSettings.clipLength = 30
+            SplitJobHistoryStore.clear()
+        }
+#endif
+
         BackgroundSplitCoordinator.shared.register()
     }
 
