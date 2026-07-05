@@ -1,6 +1,6 @@
 # Metadata-only Job History
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 

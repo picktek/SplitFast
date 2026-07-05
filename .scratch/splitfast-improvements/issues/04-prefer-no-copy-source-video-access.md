@@ -1,6 +1,6 @@
 # Prefer no-copy Source Video access
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 

@@ -8,26 +8,76 @@
 import SwiftUI
 import BackgroundTasks
 
+final class BackgroundSplitCoordinator {
+    static let shared = BackgroundSplitCoordinator()
+
+    private let identifierPrefix = "com.picktek.SplitFast.processing"
+    private var task: BGTask?
+    private var registered = false
+    var onExpiration: (() -> Void)?
+
+    func register() {
+        guard !registered else { return }
+
+        if #available(iOS 26.0, *) {
+            registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: "\(identifierPrefix).*", using: nil) { [weak self] task in
+                self?.task = task
+                task.expirationHandler = {
+                    DispatchQueue.main.async {
+                        self?.onExpiration?()
+                        self?.finish(success: false)
+                    }
+                }
+
+                if let continuedTask = task as? BGContinuedProcessingTask {
+                    continuedTask.progress.totalUnitCount = 1000
+                }
+            }
+        }
+    }
+
+    @available(iOS 26.0, *)
+    func submit(sourceName: String) -> String? {
+        let request = BGContinuedProcessingTaskRequest(
+            identifier: "\(identifierPrefix).\(UUID().uuidString)",
+            title: "Splitting video",
+            subtitle: sourceName
+        )
+        request.strategy = .queue
+
+        do {
+            try BGTaskScheduler.shared.submit(request)
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    func update(fraction: Double) {
+        if #available(iOS 26.0, *), let continuedTask = task as? BGContinuedProcessingTask {
+            let clamped = max(0, min(1, fraction))
+            continuedTask.progress.totalUnitCount = 1000
+            continuedTask.progress.completedUnitCount = Int64(clamped * 1000)
+            continuedTask.updateTitle("Splitting video", subtitle: "\(Int(clamped * 100))% complete")
+        }
+    }
+
+    func finish(success: Bool) {
+        task?.setTaskCompleted(success: success)
+        task = nil
+        onExpiration = nil
+    }
+}
+
 @main
 struct SplitFastApp: App {
-    
     init() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { success, error in
-                           if success {
-                               print("All set!")
-                               
-                           } else if let error = error {
-                               print(error.localizedDescription)
-                           }
-                       }
+        BackgroundSplitCoordinator.shared.register()
     }
-    
-    
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
-                
         }
     }
 }

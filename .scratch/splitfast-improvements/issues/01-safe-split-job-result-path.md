@@ -1,6 +1,6 @@
 # Safe Split Job result path
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 

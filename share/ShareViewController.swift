@@ -7,54 +7,98 @@
 
 import UIKit
 import Social
-import Photos
 import UniformTypeIdentifiers
 
 class ShareViewController: UIViewController {
-
-     func isContentValid() -> Bool {
-        // Do validation of contentText and/or NSExtensionContext attachments here
-        print("isvalid")
-        return true
+    func isContentValid() -> Bool {
+        firstMovieProvider() != nil
     }
 
-
-     func configurationItems() -> [Any]! {
-        print("conf items")
-        // To add configuration options via table cells at the bottom of the sheet, return an array of SLComposeSheetConfigurationItem here.
-        return []
+    func configurationItems() -> [Any]! {
+        []
     }
-    
+
     func getDuration() -> Double {
-        if let userDefaults = UserDefaults(suiteName: "group.splitfast.storage") {
-            return userDefaults.double(forKey: "partDuration") == 0 ? 30.0 : userDefaults.double(forKey: "partDuration")
-            
+        guard let userDefaults = UserDefaults(suiteName: splitFastAppGroup) else {
+            return 30
         }
-        
-        return 30.0
+
+        let stored = userDefaults.double(forKey: "partDuration")
+        return stored == 0 ? 30 : stored
     }
-    
-    
+
     override func viewDidLoad() {
-        if let content = extensionContext!.inputItems[0] as? NSExtensionItem {
-            if let contents = content.attachments {
-                for (_, attachment) in (contents).enumerated() {
-                    if attachment.hasItemConformingToTypeIdentifier(UTType.movie.description) {
-                        
-                        attachment.loadItem(forTypeIdentifier: UTType.movie.description, options: nil) { [weak self] data, error in
-                            let item = data as! URL
-                            
-                            Task {
-                                await handleVideo(url: item, partDuration: self!.getDuration(), completion: {_,_ in
-                                    
-                                    return false
-                                })
-                                await self?.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
-                            }
-                        }
-                    }
+        super.viewDidLoad()
+        processSharedVideo()
+    }
+
+    private func processSharedVideo() {
+        guard let provider = firstMovieProvider() else {
+            complete()
+            return
+        }
+
+        Task {
+            if let source = await inPlaceSourceFromItemProvider(
+                provider,
+                typeIdentifier: UTType.movie.identifier,
+                suggestedName: provider.suggestedName
+            ), let duration = try? await withCoordinatedRead(url: source.url, operation: { coordinatedURL in
+                try await loadVideoDuration(url: coordinatedURL)
+            }), duration <= splitFastShareInlineLimit {
+                _ = try? await withCoordinatedRead(url: source.url) { coordinatedURL in
+                    await handleVideo(
+                        url: coordinatedURL,
+                        sourceName: source.name,
+                        sourceAccess: .inPlace,
+                        partDuration: self.getDuration()
+                    )
                 }
+                await MainActor.run {
+                    self.complete()
+                }
+                return
+            }
+
+            if let copiedSource = await copiedSourceFromItemProvider(
+                provider,
+                typeIdentifier: UTType.movie.identifier,
+                suggestedName: provider.suggestedName,
+                useAppGroup: true
+            ), let handoffURL = splitFastHandoffURL(for: copiedSource) {
+                await openMainApp(url: handoffURL)
+            }
+
+            await MainActor.run {
+                self.complete()
             }
         }
     }
+
+    private func firstMovieProvider() -> NSItemProvider? {
+        guard let item = extensionContext?.inputItems.first as? NSExtensionItem,
+              let attachments = item.attachments
+        else {
+            return nil
+        }
+
+        return attachments.first { provider in
+            provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+                || provider.hasItemConformingToTypeIdentifier(UTType.video.identifier)
+        }
+    }
+
+    @MainActor
+    private func openMainApp(url: URL) async {
+        await withCheckedContinuation { continuation in
+            extensionContext?.open(url) { _ in
+                continuation.resume()
+            }
+        }
+    }
+
+    private func complete() {
+        extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+    }
+
 }

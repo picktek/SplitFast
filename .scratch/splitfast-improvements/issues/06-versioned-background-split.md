@@ -1,6 +1,6 @@
 # Versioned Background Split
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 

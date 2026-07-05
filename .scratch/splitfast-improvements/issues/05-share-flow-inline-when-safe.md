@@ -1,6 +1,6 @@
 # Share Flow inline when safe
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 

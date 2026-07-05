@@ -1,6 +1,6 @@
 # Save Output Clips exactly once
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 

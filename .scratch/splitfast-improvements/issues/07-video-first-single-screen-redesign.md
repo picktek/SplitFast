@@ -1,6 +1,6 @@
 # Video-first single-screen redesign
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 

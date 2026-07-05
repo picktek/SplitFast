@@ -6,184 +6,486 @@
 //
 
 import SwiftUI
-import BackgroundTasks
+import UserNotifications
+import UIKit
 
 struct ContentView: View {
-    @State private var showImagePicker : Bool = false
-    @State private var partDuration : Double =  0.0
-    @State private var splitProggress = 0.0
-    @State private var splitTotal = 0.0
-    @State private var inputFile:String? = nil
-    @State private var backgroundTaskID:UIBackgroundTaskIdentifier? = nil
-    @State private var shouldStop:Bool = false
-    @State private var processing:Bool = false
-        
-    
-    func getDuration() -> Double {
-        if let userDefaults = UserDefaults(suiteName: "group.splitfast.storage") {
-            return userDefaults.double(forKey: "partDuration") == 0 ? 30.0 : userDefaults.double(forKey: "partDuration")
-            
-        }
-        
-        return 0.0
-    }
-    
-    func storeDuration(duration:Double) {
-        if let userDefaults = UserDefaults(suiteName: "group.splitfast.storage") {
-            userDefaults.set(duration, forKey: "partDuration")
-            userDefaults.synchronize()
-        }
-    }
-    
+    @State private var showImagePicker = false
+    @State private var showHistory = false
+    @State private var partDuration = 30.0
+    @State private var selectedSource: SplitSource?
+    @State private var thumbnail: UIImage?
+    @State private var progress: SplitJobProgress?
+    @State private var result: SplitJobResult?
+    @State private var backgroundMessage: String?
+    @State private var cancelRequested = false
+    @State private var processing = false
+    @State private var history = SplitJobHistoryStore.load()
+
+    private let presets = [15.0, 30.0, 60.0, 90.0, 180.0]
+
     var body: some View {
-        GeometryReader { geometry in
-            
+        NavigationStack {
             ScrollView(showsIndicators: false) {
-                VStack {
-                    if(splitTotal > splitProggress) {
-                        Text("Will continue in background only for 25 second after it will be canceled").font(.system(size: 8)).padding().opacity(0.6).frame(maxWidth: .infinity, alignment: .leading)
-                        HStack {
-                            Text("Spliting…").frame(maxWidth: .infinity, alignment: .leading)
-                            Text("\(splitProggress, specifier: "%.2f") : \(splitTotal, specifier: "%.2f")")
-                        }.padding()
-                        ProgressView(value: splitProggress, total: splitTotal).padding()
-                        Button("Stop", role: .destructive) {
-                            self.shouldStop = true
-                            UIApplication.shared.endBackgroundTask(self.backgroundTaskID!)
-                            self.backgroundTaskID = UIBackgroundTaskIdentifier.invalid
-                            self.splitProggress = 0.0
-                            self.splitTotal = 0.0
-                            Task {
-                                removeCacheDir()
-                            }
-                        }.padding().buttonStyle(.bordered)
-                    } else if(inputFile != nil) {
-                        Image(uiImage: generateThumbnail(path: URL(string: inputFile!)!)!)
+                content
+                    .padding()
+                    .frame(maxWidth: 720)
+                    .frame(maxWidth: .infinity)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("SplitFast")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        history = SplitJobHistoryStore.load()
+                        showHistory = true
+                    } label: {
+                        Image(systemName: "clock.arrow.circlepath")
+                    }
+                    .accessibilityLabel("Job History")
+                }
+            }
+            .sheet(isPresented: $showImagePicker) {
+                VideoPicker(isShown: $showImagePicker, selectedSource: $selectedSource)
+            }
+            .sheet(isPresented: $showHistory) {
+                historySheet
+            }
+            .onAppear {
+                partDuration = storedDuration()
+            }
+            .onChange(of: selectedSource?.url) { _ in
+                thumbnail = selectedSource.flatMap { generateThumbnail(path: $0.url) }
+                result = nil
+                backgroundMessage = nil
+            }
+            .onOpenURL { url in
+                guard let source = splitSource(fromHandoffURL: url) else { return }
+                selectedSource = source
+            }
+        }
+    }
+
+    private var content: some View {
+        VStack(spacing: 16) {
+            videoPanel
+            clipLengthPanel
+            actionPanel
+            statusPanel
+        }
+    }
+
+    private var videoPanel: some View {
+        glassPanel {
+            VStack(alignment: .leading, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.black)
+                        .aspectRatio(16 / 9, contentMode: .fit)
+
+                    if let thumbnail {
+                        Image(uiImage: thumbnail)
                             .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: geometry.size.width, height: geometry.size.height - 150, alignment: .topLeading)
-                        Button("Start") {
-                            print("Start")
-                            self.shouldStop = false
-                            
-                            self.backgroundTaskID = UIApplication.shared.beginBackgroundTask (withName: "Split Large Video") {
-                                print("BG Expired")
-                                Task {
-                                    let content = UNMutableNotificationContent()
-                                    content.title = "Spliting Video Failed"
-                                    content.body = "Spliting stoped try again"
-                                    
-                                    let uuidString = UUID().uuidString
-                                    let request = UNNotificationRequest(identifier: uuidString,
-                                                                        content: content, trigger: nil)
-                                    
-                                    
-                                    // Schedule the request with the system.
-                                    let notificationCenter = UNUserNotificationCenter.current()
-                                    try await notificationCenter.add(request)
-                                    
-                                    UIApplication.shared.endBackgroundTask(self.backgroundTaskID!)
-                                    self.backgroundTaskID = UIBackgroundTaskIdentifier.invalid
-                                }
-                            }
-                            Task {
-                                let targetURL = URL(string: inputFile!);
-                                self.inputFile = nil
-                                self.processing = true
-                                await handleVideo(url: targetURL!, partDuration: self.partDuration, completion: {
-                                    if(shouldStop) {
-                                        return shouldStop
-                                    } else {
-                                        self.splitProggress = $0
-                                        self.splitTotal = $1
-                                    }
-                                    
-                                    return shouldStop
-                                })
-                                self.processing = false
-                                print("Completed Spliting")
-                                UIApplication.shared.endBackgroundTask(self.backgroundTaskID!)
-                                self.backgroundTaskID = UIBackgroundTaskIdentifier.invalid
-                                
-                                DispatchQueue.main.async {
-                                    if (UIApplication.shared.applicationState != .active) {
-                                        Task {
-                                            let content = UNMutableNotificationContent()
-                                            content.title = "Spliting Video Completed"
-                                            content.body = "Creasted \(self.splitTotal) parts"
-                                            
-                                            let uuidString = UUID().uuidString
-                                            let request = UNNotificationRequest(identifier: uuidString,
-                                                                                content: content, trigger: nil)
-                                            
-                                            
-                                            // Schedule the request with the system.
-                                            let notificationCenter = UNUserNotificationCenter.current()
-                                            try await notificationCenter.add(request)
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            
-                        }.buttonStyle(.bordered).padding()
-                        Button("cancel") {
-                            self.shouldStop = true
-                            self.inputFile = nil
-                            Task {
-                                removeCacheDir()
-                            }
-                        }.padding()
+                            .scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     } else {
-                        Text("Video Part duration: \(partDuration, specifier: "%.2f") Seconds")
-                            .foregroundColor(.blue)
-                        HStack {
-                            Button("-") {
-                                partDuration -= 0.5
-                                storeDuration(duration: self.partDuration)
-                            }.buttonStyle(.bordered)
-                            Slider(    value: $partDuration,
-                                       in: 10...180,
-                                       step: 0.5,
-                                       onEditingChanged:{_ in
-                                storeDuration(duration: self.partDuration)
-                                                                
-                            })
-                            Button("+") {
-                                partDuration += 0.5
-                                storeDuration(duration: self.partDuration)
-                            }.buttonStyle(.bordered)
-                        }.padding()
-                        Button("Choose Video") {
-                            self.showImagePicker = true
-                        }.buttonStyle(.bordered).disabled(self.processing)
+                        Image(systemName: "film")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.white.opacity(0.75))
                     }
                 }
-                .padding()
-                .frame(minHeight: geometry.size.height)
-                .sheet(isPresented: self.$showImagePicker) {
-                    VideoPicker(isShown: self.$showImagePicker, inputFile: self.$inputFile)
+
+                if let selectedSource {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(selectedSource.name)
+                            .font(.headline)
+                            .lineLimit(2)
+                        Text(selectedSource.access.label)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                Text(
-                    (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-")
-                    + " (" +
-                    (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "-")
-                    + ")"
-                ).frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding([.top], -50)
-                    .padding([.trailing], 40)
+
+                Button {
+                    showImagePicker = true
+                } label: {
+                    Label(selectedSource == nil ? "Choose Video" : "Change Video", systemImage: "video.badge.plus")
+                }
+                .buttonStyle(.bordered)
+                .disabled(processing)
             }
-        }.onAppear(perform: {
-            self.partDuration = getDuration()
-        })
+        }
+    }
+
+    private var clipLengthPanel: some View {
+        glassPanel {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Clip Length")
+                    .font(.headline)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 8)], spacing: 8) {
+                    ForEach(presets, id: \.self) { preset in
+                        Button {
+                            partDuration = preset
+                            storeDuration(partDuration)
+                        } label: {
+                            Text("\(Int(preset))s")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(partDuration == preset ? .accentColor : .secondary)
+                    }
+                }
+
+                HStack {
+                    Button {
+                        partDuration = max(10, partDuration - 5)
+                        storeDuration(partDuration)
+                    } label: {
+                        Image(systemName: "minus")
+                    }
+                    .buttonStyle(.bordered)
+
+                    Slider(value: $partDuration, in: 10...180, step: 5) {
+                        Text("Custom Clip Length")
+                    } minimumValueLabel: {
+                        Text("10s")
+                    } maximumValueLabel: {
+                        Text("180s")
+                    } onEditingChanged: { editing in
+                        if !editing {
+                            storeDuration(partDuration)
+                        }
+                    }
+
+                    Button {
+                        partDuration = min(180, partDuration + 5)
+                        storeDuration(partDuration)
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                Text("\(Int(partDuration)) seconds")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var actionPanel: some View {
+        HStack(spacing: 12) {
+            primaryActionButton
+
+            if selectedSource != nil || result != nil {
+                Button {
+                    clearSelection()
+                } label: {
+                    Label("Clear", systemImage: "xmark")
+                }
+                .buttonStyle(.bordered)
+                .disabled(processing)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var primaryActionButton: some View {
+        if processing {
+            Button(role: .destructive) {
+                cancelRequested = true
+            } label: {
+                Label("Cancel Split", systemImage: "stop.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+        } else {
+            Button {
+                startSplit()
+            } label: {
+                Label("Start Split", systemImage: "scissors")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(selectedSource == nil)
+        }
+    }
+
+    @ViewBuilder
+    private var statusPanel: some View {
+        if progress != nil || result != nil || backgroundMessage != nil {
+            glassPanel {
+                VStack(alignment: .leading, spacing: 10) {
+                    if let progress {
+                        Text(progress.label)
+                            .font(.headline)
+                        ProgressView(value: progress.fraction)
+                        Text("\(Int(progress.fraction * 100))%")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let result {
+                        Text(result.status.title)
+                            .font(.headline)
+                        Text(result.message)
+                            .font(.subheadline)
+                            .foregroundStyle(result.status == .failed ? .red : .secondary)
+                    }
+
+                    if let backgroundMessage {
+                        Text(backgroundMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private var historySheet: some View {
+        NavigationStack {
+            List {
+                if history.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 36))
+                            .foregroundStyle(.secondary)
+                        Text("No Job History")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 48)
+                } else {
+                    ForEach(history) { entry in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(entry.status.title)
+                                    .font(.headline)
+                                Spacer()
+                                Text(entry.startedAt.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text(entry.sourceName)
+                                .lineLimit(2)
+
+                            Text("\(Int(entry.clipLength))s clips - \(entry.clipCount) saved - \(entry.sourceAccess.label)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if !entry.message.isEmpty {
+                                Text(entry.message)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onDelete(perform: deleteHistory)
+                }
+            }
+            .navigationTitle("Job History")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") {
+                        showHistory = false
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Clear All", role: .destructive) {
+                        SplitJobHistoryStore.clear()
+                        history = []
+                    }
+                    .disabled(history.isEmpty)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func glassPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 12) {
+                content()
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+        } else {
+            content()
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
+    private func startSplit() {
+        guard let source = selectedSource else { return }
+
+        cancelRequested = false
+        processing = true
+        progress = SplitJobProgress(completedClips: 0, totalClips: 0, currentClipFraction: 0, phase: .preparing)
+        result = nil
+        BackgroundSplitCoordinator.shared.onExpiration = {
+            cancelRequested = true
+            backgroundMessage = "Background Split expired before the Split Job completed."
+        }
+
+        Task {
+            await prepareBackgroundIfNeeded(for: source)
+            let jobResult = await runSplit(source)
+            await MainActor.run {
+                result = jobResult
+                progress = nil
+                processing = false
+                history = SplitJobHistoryStore.load()
+                BackgroundSplitCoordinator.shared.finish(success: jobResult.status == .completed || jobResult.status == .noSplitNeeded)
+
+                if source.deleteAfterUse || jobResult.status == .completed || jobResult.status == .noSplitNeeded {
+                    selectedSource = nil
+                    thumbnail = nil
+                }
+            }
+
+            await notifyIfNeeded(jobResult)
+        }
+    }
+
+    private func runSplit(_ source: SplitSource) async -> SplitJobResult {
+        do {
+            if source.access == .inPlace {
+                return try await withCoordinatedRead(url: source.url) { coordinatedURL in
+                    await handleVideo(
+                        url: coordinatedURL,
+                        sourceName: source.name,
+                        sourceAccess: source.access,
+                        deleteSourceAfterUse: false,
+                        partDuration: partDuration,
+                        shouldCancel: { cancelRequested },
+                        onProgress: updateProgress
+                    )
+                }
+            }
+
+            return await handleVideo(
+                url: source.url,
+                sourceName: source.name,
+                sourceAccess: source.access,
+                deleteSourceAfterUse: source.deleteAfterUse,
+                partDuration: partDuration,
+                shouldCancel: { cancelRequested },
+                onProgress: updateProgress
+            )
+        } catch {
+            let failed = SplitJobResult(
+                status: .failed,
+                startedAt: Date(),
+                endedAt: Date(),
+                sourceName: source.name,
+                clipLength: partDuration,
+                clipCount: 0,
+                outputAssetIdentifiers: [],
+                sourceAccess: source.access,
+                message: error.localizedDescription
+            )
+            SplitJobHistoryStore.append(failed.historyEntry)
+            return failed
+        }
+    }
+
+    private func updateProgress(_ update: SplitJobProgress) {
+        progress = update
+        BackgroundSplitCoordinator.shared.update(fraction: update.fraction)
+    }
+
+    private func prepareBackgroundIfNeeded(for source: SplitSource) async {
+        let duration = await sourceDuration(source)
+        guard (duration ?? 0) > splitFastShareInlineLimit else {
+            await MainActor.run { backgroundMessage = nil }
+            return
+        }
+
+        await requestNotificationPermission()
+
+        await MainActor.run {
+            if #available(iOS 26.0, *) {
+                if let error = BackgroundSplitCoordinator.shared.submit(sourceName: source.name) {
+                    backgroundMessage = "Background Split could not start: \(error)"
+                } else {
+                    backgroundMessage = "Background Split is using iOS continued processing."
+                }
+            } else {
+                backgroundMessage = "Keep SplitFast open until this Split Job completes on this iOS version."
+            }
+        }
+    }
+
+    private func sourceDuration(_ source: SplitSource) async -> Double? {
+        if source.access == .inPlace {
+            return try? await withCoordinatedRead(url: source.url) { coordinatedURL in
+                try await loadVideoDuration(url: coordinatedURL)
+            }
+        }
+
+        return try? await loadVideoDuration(url: source.url)
+    }
+
+    private func notifyIfNeeded(_ jobResult: SplitJobResult) async {
+        guard UIApplication.shared.applicationState != .active else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "SplitFast \(jobResult.status.title)"
+        content.body = jobResult.message
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    private func requestNotificationPermission() async {
+        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+    }
+
+    private func clearSelection() {
+        if selectedSource?.deleteAfterUse == true, let url = selectedSource?.url {
+            try? FileManager.default.removeItem(at: url)
+        }
+        selectedSource = nil
+        thumbnail = nil
+        result = nil
+        progress = nil
+        backgroundMessage = nil
+        cancelRequested = false
+    }
+
+    private func deleteHistory(at offsets: IndexSet) {
+        let ids = offsets.map { history[$0].id }
+        for id in ids {
+            SplitJobHistoryStore.delete(id: id)
+        }
+        history = SplitJobHistoryStore.load()
+    }
+
+    private func storedDuration() -> Double {
+        guard let userDefaults = UserDefaults(suiteName: splitFastAppGroup) else {
+            return 30
+        }
+        let stored = userDefaults.double(forKey: "partDuration")
+        return stored == 0 ? 30 : stored
+    }
+
+    private func storeDuration(_ duration: Double) {
+        guard let userDefaults = UserDefaults(suiteName: splitFastAppGroup) else { return }
+        userDefaults.set(duration, forKey: "partDuration")
     }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
-        
     }
 }
-
-

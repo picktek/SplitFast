@@ -4,7 +4,7 @@
 <dict>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.picktek.SplitFast.processing</string>
+		<string>com.picktek.SplitFast.processing.*</string>
 	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
@@ -12,16 +12,15 @@
 			<key>CFBundleTypeIconSystemGenerated</key>
 			<integer>1</integer>
 			<key>CFBundleTypeName</key>
-			<string>Incoming VIdeo</string>
+			<string>Incoming Video</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Default</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>public.data</string>
-				<string>public.content</string>
-				<string>video.*</string>
+				<string>public.movie</string>
+				<string>public.video</string>
 			</array>
 		</dict>
 	</array>

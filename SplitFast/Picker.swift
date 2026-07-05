@@ -1,99 +1,89 @@
 import UIKit
 import SwiftUI
 import PhotosUI
-import BackgroundTasks
+import UniformTypeIdentifiers
 
 struct VideoPicker: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentationMode
-    
+
     @Binding var isShown: Bool
-    @Binding var inputFile: String?
-    
-    
-    init(isShown: Binding<Bool>, inputFile: Binding<String?>) {
+    @Binding var selectedSource: SplitSource?
+
+    init(isShown: Binding<Bool>, selectedSource: Binding<SplitSource?>) {
         _isShown = isShown
-        _inputFile = inputFile
+        _selectedSource = selectedSource
     }
-    
+
     func close() {
-        self.presentationMode.wrappedValue.dismiss()
+        presentationMode.wrappedValue.dismiss()
         isShown = false
-        
     }
-    
+
     func makeUIViewController(context: Context) -> PHPickerViewController {
-        var config = PHPickerConfiguration()
+        var config = PHPickerConfiguration(photoLibrary: .shared())
         config.filter = .videos
         config.selectionLimit = 1
         config.preferredAssetRepresentationMode = .current
-        
+
         let controller = PHPickerViewController(configuration: config)
         controller.delegate = context.coordinator
-        
+
         return controller
     }
-    
+
     func updateUIViewController(_: PHPickerViewController, context _: Context) {
     }
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-    
+
     class Coordinator: PHPickerViewControllerDelegate {
         let parent: VideoPicker
-        var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-        
+
         init(_ parent: VideoPicker) {
             self.parent = parent
         }
-        
+
         func picker(_: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            guard let video = results.first else {
-                self.parent.close()
-                
+            guard let result = results.first else {
+                parent.close()
                 return
             }
-            
-            video.itemProvider.loadFileRepresentation(forTypeIdentifier: video.itemProvider.registeredTypeIdentifiers.first!) { url, error in
-                if let error = error {
-                    self.parent.presentationMode.wrappedValue.dismiss()
-                    
-                    print(error.localizedDescription)
-                }
-                
-                guard let url = url else {
-                    self.parent.presentationMode.wrappedValue.dismiss()
-                    
-                    return
-                }
-                
-                let documentsDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
-                guard let targetURL = documentsDirectory?.appendingPathComponent("split_part_main_" + url.lastPathComponent) else {
-                    return
-                }
-                
-                do {
-                    if FileManager.default.fileExists(atPath: targetURL.path) {
-                        try FileManager.default.removeItem(at: targetURL)
-                    }
-                    
-                    try FileManager.default.copyItem(at: url, to: targetURL)
-                    
-                } catch {
-                    print(error.localizedDescription)
-                }
-                
-                self.parent.presentationMode.wrappedValue.dismiss()
-                self.parent.inputFile = targetURL.absoluteString
-                
 
-                
-                
+            Task {
+                let provider = result.itemProvider
+                var source: SplitSource?
+
+                if let assetIdentifier = result.assetIdentifier {
+                    source = await sourceFromPhotoLibrary(
+                        assetIdentifier: assetIdentifier,
+                        suggestedName: provider.suggestedName
+                    )
+                }
+
+                if source == nil {
+                    source = await inPlaceSourceFromItemProvider(
+                        provider,
+                        typeIdentifier: UTType.movie.identifier,
+                        suggestedName: provider.suggestedName
+                    )
+                }
+
+                if source == nil {
+                    source = await copiedSourceFromItemProvider(
+                        provider,
+                        typeIdentifier: UTType.movie.identifier,
+                        suggestedName: provider.suggestedName,
+                        useAppGroup: false
+                    )
+                }
+
+                await MainActor.run {
+                    self.parent.selectedSource = source
+                    self.parent.close()
+                }
             }
-            
         }
-        
-        
     }
 }

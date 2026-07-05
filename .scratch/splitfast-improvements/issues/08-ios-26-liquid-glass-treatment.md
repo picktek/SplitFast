@@ -1,6 +1,6 @@
 # iOS 26 Liquid Glass treatment
 
-Status: ready-for-agent
+Status: resolved
 
 ## Parent
 
