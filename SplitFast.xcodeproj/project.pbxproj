@@ -17,6 +17,7 @@
 		0BDEE0DC2A8392250002909B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0BDEE0DB2A8392250002909B /* Preview Assets.xcassets */; };
 		0BDEE0E32A8392950002909B /* Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BDEE0E22A8392950002909B /* Video.swift */; };
 		0BDEE0E52A83988F0002909B /* Picker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BDEE0E42A83988F0002909B /* Picker.swift */; };
+		C0D3E2E12B00000000000001 /* SplitFastUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3E2E12B00000000000002 /* SplitFastUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -26,6 +27,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 0B23FE612A85F14000A7540B;
 			remoteInfo = share;
+		};
+		C0D3E2E12B0000000000000C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0BDEE0C82A8392230002909B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0BDEE0CF2A8392230002909B;
+			remoteInfo = SplitFast;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -58,6 +66,8 @@
 		0BDEE0E42A83988F0002909B /* Picker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Picker.swift; sourceTree = "<group>"; };
 		0BEF920B2A8613FE00EB91CE /* share.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = share.entitlements; sourceTree = "<group>"; };
 		0BF870052A84B85500217DFD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C0D3E2E12B00000000000002 /* SplitFastUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitFastUITests.swift; sourceTree = "<group>"; };
+		C0D3E2E12B00000000000003 /* SplitFastUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SplitFastUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +79,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		0BDEE0CD2A8392230002909B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0D3E2E12B00000000000004 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -93,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				0BDEE0D22A8392230002909B /* SplitFast */,
+				C0D3E2E12B00000000000007 /* SplitFastUITests */,
 				0B23FE632A85F14000A7540B /* share */,
 				0BDEE0D12A8392230002909B /* Products */,
 			);
@@ -103,6 +121,7 @@
 			children = (
 				0BDEE0D02A8392230002909B /* SplitFast.app */,
 				0B23FE622A85F14000A7540B /* share.appex */,
+				C0D3E2E12B00000000000003 /* SplitFastUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -128,6 +147,14 @@
 				0BDEE0DB2A8392250002909B /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		C0D3E2E12B00000000000007 /* SplitFastUITests */ = {
+			isa = PBXGroup;
+			children = (
+				C0D3E2E12B00000000000002 /* SplitFastUITests.swift */,
+			);
+			path = SplitFastUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -169,6 +196,24 @@
 			productReference = 0BDEE0D02A8392230002909B /* SplitFast.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C0D3E2E12B00000000000008 /* SplitFastUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0D3E2E12B00000000000009 /* Build configuration list for PBXNativeTarget "SplitFastUITests" */;
+			buildPhases = (
+				C0D3E2E12B00000000000005 /* Sources */,
+				C0D3E2E12B00000000000004 /* Frameworks */,
+				C0D3E2E12B00000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C0D3E2E12B0000000000000D /* PBXTargetDependency */,
+			);
+			name = SplitFastUITests;
+			productName = SplitFastUITests;
+			productReference = C0D3E2E12B00000000000003 /* SplitFastUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -202,6 +247,7 @@
 			targets = (
 				0BDEE0CF2A8392230002909B /* SplitFast */,
 				0B23FE612A85F14000A7540B /* share */,
+				C0D3E2E12B00000000000008 /* SplitFastUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -221,6 +267,13 @@
 			files = (
 				0BDEE0DC2A8392250002909B /* Preview Assets.xcassets in Resources */,
 				0BDEE0D82A8392250002909B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0D3E2E12B00000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,6 +300,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0D3E2E12B00000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0D3E2E12B00000000000001 /* SplitFastUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -254,6 +315,11 @@
 			isa = PBXTargetDependency;
 			target = 0B23FE612A85F14000A7540B /* share */;
 			targetProxy = 0B23FE6A2A85F14000A7540B /* PBXContainerItemProxy */;
+		};
+		C0D3E2E12B0000000000000D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0BDEE0CF2A8392230002909B /* SplitFast */;
+			targetProxy = C0D3E2E12B0000000000000C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -286,7 +352,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.picktek.SplitFast.inline-split";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -314,7 +380,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.picktek.SplitFast.inline-split";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -471,7 +537,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.picktek.SplitFast;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -518,7 +584,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.picktek.SplitFast;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -528,6 +594,56 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C0D3E2E12B0000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N43S8JF6JT;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.picktek.SplitFastUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = SplitFast;
+			};
+			name = Debug;
+		};
+		C0D3E2E12B0000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N43S8JF6JT;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.picktek.SplitFastUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = SplitFast;
 			};
 			name = Release;
 		};
@@ -557,6 +673,15 @@
 			buildConfigurations = (
 				0BDEE0E02A8392250002909B /* Debug */,
 				0BDEE0E12A8392250002909B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C0D3E2E12B00000000000009 /* Build configuration list for PBXNativeTarget "SplitFastUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0D3E2E12B0000000000000A /* Debug */,
+				C0D3E2E12B0000000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
