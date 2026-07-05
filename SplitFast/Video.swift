@@ -10,10 +10,17 @@ import AVKit
 import Dispatch
 import Photos
 import AVFoundation
+import UniformTypeIdentifiers
 
 let splitFastAppGroup = "group.splitfast.storage"
 let splitFastAlbumName = "SplitFast"
 let splitFastShareInlineLimit: Double = 180
+private let splitFastDefaultClipLength = 30.0
+private let splitFastClipLengthKey = "partDuration"
+private let splitFastVideoTypeIdentifiers = [
+    UTType.movie.identifier,
+    UTType.video.identifier
+]
 
 enum SplitSourceAccess: String, Codable, CaseIterable {
     case photoKit
@@ -38,6 +45,42 @@ struct SplitSource: Identifiable, Codable, Equatable {
     var name: String
     var access: SplitSourceAccess
     var deleteAfterUse: Bool
+
+    func read<T>(_ operation: @escaping (URL) async throws -> T) async throws -> T {
+        if access == .inPlace {
+            return try await withCoordinatedRead(url: url, operation: operation)
+        }
+
+        return try await operation(url)
+    }
+
+    func duration() async throws -> Double {
+        try await read { readableURL in
+            try await loadVideoDuration(url: readableURL)
+        }
+    }
+
+    func thumbnail() async -> UIImage? {
+        try? await read { readableURL in
+            generateThumbnail(path: readableURL)
+        }
+    }
+}
+
+enum SplitSettings {
+    static var clipLength: Double {
+        get {
+            let stored = defaults.double(forKey: splitFastClipLengthKey)
+            return stored == 0 ? splitFastDefaultClipLength : stored
+        }
+        set {
+            defaults.set(newValue, forKey: splitFastClipLengthKey)
+        }
+    }
+
+    private static var defaults: UserDefaults {
+        UserDefaults(suiteName: splitFastAppGroup) ?? .standard
+    }
 }
 
 enum SplitJobStatus: String, Codable {
@@ -454,6 +497,10 @@ func copiedSourceFromItemProvider(_ provider: NSItemProvider, typeIdentifier: St
             }
         }
     }
+}
+
+func splitFastVideoTypeIdentifier(for provider: NSItemProvider) -> String? {
+    splitFastVideoTypeIdentifiers.first { provider.hasItemConformingToTypeIdentifier($0) }
 }
 
 func copySourceVideo(url: URL, name: String?, useAppGroup: Bool) throws -> SplitSource {

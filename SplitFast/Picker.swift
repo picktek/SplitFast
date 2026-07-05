@@ -1,7 +1,6 @@
 import UIKit
 import SwiftUI
 import PhotosUI
-import UniformTypeIdentifiers
 
 struct VideoPicker: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentationMode
@@ -62,18 +61,18 @@ struct VideoPicker: UIViewControllerRepresentable {
                     )
                 }
 
-                if source == nil {
+                if source == nil, let typeIdentifier = splitFastVideoTypeIdentifier(for: provider) {
                     source = await inPlaceSourceFromItemProvider(
                         provider,
-                        typeIdentifier: UTType.movie.identifier,
+                        typeIdentifier: typeIdentifier,
                         suggestedName: provider.suggestedName
                     )
                 }
 
-                if source == nil {
+                if source == nil, let typeIdentifier = splitFastVideoTypeIdentifier(for: provider) {
                     source = await copiedSourceFromItemProvider(
                         provider,
-                        typeIdentifier: UTType.movie.identifier,
+                        typeIdentifier: typeIdentifier,
                         suggestedName: provider.suggestedName,
                         useAppGroup: false
                     )

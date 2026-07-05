@@ -52,12 +52,23 @@ struct ContentView: View {
                 historySheet
             }
             .onAppear {
-                partDuration = storedDuration()
+                partDuration = SplitSettings.clipLength
             }
-            .onChange(of: selectedSource?.url) { _ in
-                thumbnail = selectedSource.flatMap { generateThumbnail(path: $0.url) }
+            .onChange(of: selectedSource?.id) { _ in
+                let source = selectedSource
+                thumbnail = nil
                 result = nil
                 backgroundMessage = nil
+
+                guard let source else { return }
+                Task {
+                    let image = await source.thumbnail()
+                    await MainActor.run {
+                        if selectedSource?.id == source.id {
+                            thumbnail = image
+                        }
+                    }
+                }
             }
             .onOpenURL { url in
                 guard let source = splitSource(fromHandoffURL: url) else { return }
@@ -127,7 +138,7 @@ struct ContentView: View {
                     ForEach(presets, id: \.self) { preset in
                         Button {
                             partDuration = preset
-                            storeDuration(partDuration)
+                            SplitSettings.clipLength = partDuration
                         } label: {
                             Text("\(Int(preset))s")
                                 .frame(maxWidth: .infinity)
@@ -140,7 +151,7 @@ struct ContentView: View {
                 HStack {
                     Button {
                         partDuration = max(10, partDuration - 5)
-                        storeDuration(partDuration)
+                        SplitSettings.clipLength = partDuration
                     } label: {
                         Image(systemName: "minus")
                     }
@@ -154,13 +165,13 @@ struct ContentView: View {
                         Text("180s")
                     } onEditingChanged: { editing in
                         if !editing {
-                            storeDuration(partDuration)
+                            SplitSettings.clipLength = partDuration
                         }
                     }
 
                     Button {
                         partDuration = min(180, partDuration + 5)
-                        storeDuration(partDuration)
+                        SplitSettings.clipLength = partDuration
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -358,29 +369,17 @@ struct ContentView: View {
 
     private func runSplit(_ source: SplitSource) async -> SplitJobResult {
         do {
-            if source.access == .inPlace {
-                return try await withCoordinatedRead(url: source.url) { coordinatedURL in
-                    await handleVideo(
-                        url: coordinatedURL,
-                        sourceName: source.name,
-                        sourceAccess: source.access,
-                        deleteSourceAfterUse: false,
-                        partDuration: partDuration,
-                        shouldCancel: { cancelRequested },
-                        onProgress: updateProgress
-                    )
-                }
+            return try await source.read { readableURL in
+                await handleVideo(
+                    url: readableURL,
+                    sourceName: source.name,
+                    sourceAccess: source.access,
+                    deleteSourceAfterUse: source.deleteAfterUse,
+                    partDuration: partDuration,
+                    shouldCancel: { cancelRequested },
+                    onProgress: updateProgress
+                )
             }
-
-            return await handleVideo(
-                url: source.url,
-                sourceName: source.name,
-                sourceAccess: source.access,
-                deleteSourceAfterUse: source.deleteAfterUse,
-                partDuration: partDuration,
-                shouldCancel: { cancelRequested },
-                onProgress: updateProgress
-            )
         } catch {
             let failed = SplitJobResult(
                 status: .failed,
@@ -426,13 +425,7 @@ struct ContentView: View {
     }
 
     private func sourceDuration(_ source: SplitSource) async -> Double? {
-        if source.access == .inPlace {
-            return try? await withCoordinatedRead(url: source.url) { coordinatedURL in
-                try await loadVideoDuration(url: coordinatedURL)
-            }
-        }
-
-        return try? await loadVideoDuration(url: source.url)
+        try? await source.duration()
     }
 
     private func notifyIfNeeded(_ jobResult: SplitJobResult) async {
@@ -470,18 +463,6 @@ struct ContentView: View {
         history = SplitJobHistoryStore.load()
     }
 
-    private func storedDuration() -> Double {
-        guard let userDefaults = UserDefaults(suiteName: splitFastAppGroup) else {
-            return 30
-        }
-        let stored = userDefaults.double(forKey: "partDuration")
-        return stored == 0 ? 30 : stored
-    }
-
-    private func storeDuration(_ duration: Double) {
-        guard let userDefaults = UserDefaults(suiteName: splitFastAppGroup) else { return }
-        userDefaults.set(duration, forKey: "partDuration")
-    }
 }
 
 struct ContentView_Previews: PreviewProvider {

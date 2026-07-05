@@ -7,7 +7,6 @@
 
 import UIKit
 import Social
-import UniformTypeIdentifiers
 
 class ShareViewController: UIViewController {
     func isContentValid() -> Bool {
@@ -19,12 +18,7 @@ class ShareViewController: UIViewController {
     }
 
     func getDuration() -> Double {
-        guard let userDefaults = UserDefaults(suiteName: splitFastAppGroup) else {
-            return 30
-        }
-
-        let stored = userDefaults.double(forKey: "partDuration")
-        return stored == 0 ? 30 : stored
+        SplitSettings.clipLength
     }
 
     override func viewDidLoad() {
@@ -33,7 +27,9 @@ class ShareViewController: UIViewController {
     }
 
     private func processSharedVideo() {
-        guard let provider = firstMovieProvider() else {
+        guard let provider = firstMovieProvider(),
+              let typeIdentifier = splitFastVideoTypeIdentifier(for: provider)
+        else {
             complete()
             return
         }
@@ -41,14 +37,12 @@ class ShareViewController: UIViewController {
         Task {
             if let source = await inPlaceSourceFromItemProvider(
                 provider,
-                typeIdentifier: UTType.movie.identifier,
+                typeIdentifier: typeIdentifier,
                 suggestedName: provider.suggestedName
-            ), let duration = try? await withCoordinatedRead(url: source.url, operation: { coordinatedURL in
-                try await loadVideoDuration(url: coordinatedURL)
-            }), duration <= splitFastShareInlineLimit {
-                _ = try? await withCoordinatedRead(url: source.url) { coordinatedURL in
+            ), let duration = try? await source.duration(), duration <= splitFastShareInlineLimit {
+                _ = try? await source.read { readableURL in
                     await handleVideo(
-                        url: coordinatedURL,
+                        url: readableURL,
                         sourceName: source.name,
                         sourceAccess: .inPlace,
                         partDuration: self.getDuration()
@@ -62,7 +56,7 @@ class ShareViewController: UIViewController {
 
             if let copiedSource = await copiedSourceFromItemProvider(
                 provider,
-                typeIdentifier: UTType.movie.identifier,
+                typeIdentifier: typeIdentifier,
                 suggestedName: provider.suggestedName,
                 useAppGroup: true
             ), let handoffURL = splitFastHandoffURL(for: copiedSource) {
@@ -83,8 +77,7 @@ class ShareViewController: UIViewController {
         }
 
         return attachments.first { provider in
-            provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
-                || provider.hasItemConformingToTypeIdentifier(UTType.video.identifier)
+            splitFastVideoTypeIdentifier(for: provider) != nil
         }
     }
 
